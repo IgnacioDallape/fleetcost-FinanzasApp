@@ -1,0 +1,1709 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flujo · FleetCost</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg: #f5f4f0;
+  --bg2: #ffffff;
+  --bg3: #f0eeea;
+  --bg4: #e8e6e1;
+  --border: rgba(0,0,0,0.07);
+  --border2: rgba(0,0,0,0.13);
+  --text: #1a1814;
+  --text2: #5a5650;
+  --text3: #9a9690;
+  --accent: #1a6b3a;
+  --accent2: #14552e;
+  --accent-dim: rgba(26,107,58,0.10);
+  --accent-dim2: rgba(26,107,58,0.05);
+  --red: #c0392b;
+  --red-dim: rgba(192,57,43,0.09);
+  --amber: #b7600a;
+  --amber-dim: rgba(183,96,10,0.09);
+  --blue: #1a5fa8;
+  --blue-dim: rgba(26,95,168,0.09);
+  --radius: 14px;
+  --radius-sm: 8px;
+  --font-display: 'DM Serif Display', serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 14px; min-height: 100vh; line-height: 1.5; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 4px; border: 1px solid var(--bg3); }
+.app { display: grid; grid-template-columns: 220px 1fr; grid-template-rows: auto 1fr; min-height: 100vh; }
+.topbar { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; padding: 18px 28px; border-bottom: 1px solid var(--border); background: var(--bg); position: sticky; top: 0; z-index: 100; }
+.logo { font-family: var(--font-display); font-size: 22px; color: var(--text); letter-spacing: -0.5px; display: flex; align-items: center; gap: 10px; }
+.logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px rgba(26,107,58,0.4); animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(0.85)} }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.saldo-pill { display: flex; align-items: center; gap: 8px; background: var(--accent-dim2); border: 1px solid rgba(26,107,58,0.18); border-radius: 100px; padding: 6px 14px; font-size: 13px; font-weight: 500; }
+.saldo-pill span { color: var(--accent); font-family: var(--font-mono); font-size: 13px; }
+.saldo-label { color: var(--text3); font-size: 11px; }
+.sidebar { background: var(--bg); border-right: 1px solid var(--border); padding: 24px 0; position: sticky; top: 61px; height: calc(100vh - 61px); overflow-y: auto; }
+.nav-section { padding: 0 12px; margin-bottom: 6px; }
+.nav-label { font-size: 10px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--text3); padding: 0 10px; margin-bottom: 6px; margin-top: 16px; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: var(--radius-sm); cursor: pointer; color: var(--text2); font-size: 13px; font-weight: 400; transition: all .15s; position: relative; }
+.nav-item:hover { background: var(--bg3); color: var(--text); }
+.nav-item.active { background: var(--accent-dim); color: var(--accent); font-weight: 500; }
+.nav-item.active::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 60%; background: var(--accent); border-radius: 0 3px 3px 0; }
+.nav-icon { font-size: 16px; width: 20px; text-align: center; }
+.nav-badge { margin-left: auto; background: var(--red-dim); color: var(--red); font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 100px; font-family: var(--font-mono); }
+.main { background: var(--bg); padding: 32px 36px; overflow-y: auto; }
+.page-header { margin-bottom: 28px; animation: fadeIn .3s ease; }
+.page-title { font-family: var(--font-display); font-size: 28px; color: var(--text); letter-spacing: -0.5px; margin-bottom: 4px; }
+.page-sub { color: var(--text3); font-size: 13px; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.metric-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; position: relative; overflow: hidden; transition: border-color .2s; }
+.metric-card:hover { border-color: var(--border2); }
+.metric-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+.metric-card.green::after { background: linear-gradient(90deg, var(--accent), transparent); }
+.metric-card.red::after { background: linear-gradient(90deg, var(--red), transparent); }
+.metric-card.blue::after { background: linear-gradient(90deg, var(--blue), transparent); }
+.metric-card.amber::after { background: linear-gradient(90deg, var(--amber), transparent); }
+.metric-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+.metric-value { font-family: var(--font-mono); font-size: 22px; font-weight: 500; color: var(--text); line-height: 1; }
+.metric-value.green { color: var(--accent); }
+.metric-value.red { color: var(--red); }
+.metric-value.blue { color: var(--blue); }
+.metric-value.amber { color: var(--amber); }
+.metric-sub { font-size: 11px; color: var(--text3); margin-top: 6px; }
+.alerts { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.alert { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: var(--radius-sm); font-size: 13px; line-height: 1.5; border: 1px solid; animation: slideIn .3s ease; }
+@keyframes slideIn { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:translateX(0)} }
+.alert.danger { background: var(--red-dim); border-color: rgba(192,57,43,0.25); color: #8b1a10; }
+.alert.warning { background: var(--amber-dim); border-color: rgba(183,96,10,0.25); color: #7a3d00; }
+.alert.success { background: var(--accent-dim2); border-color: rgba(26,107,58,0.2); color: var(--accent); }
+.alert-icon { font-size: 14px; margin-top: 1px; flex-shrink: 0; }
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 20px; transition: border-color .2s; }
+.card:hover { border-color: var(--border2); }
+.card-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.card-title { font-size: 13px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: .05em; }
+.card-body { padding: 20px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 10px 16px; font-size: 10px; font-weight: 500; letter-spacing: .07em; text-transform: uppercase; color: var(--text3); border-bottom: 1px solid var(--border); }
+td { padding: 12px 16px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg3); }
+tr.paid td { opacity: .35; text-decoration: line-through; }
+.mono { font-family: var(--font-mono); font-size: 13px; }
+.badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 100px; font-size: 10px; font-weight: 500; letter-spacing: .03em; font-family: var(--font-mono); }
+.badge-red { background: var(--red-dim); color: var(--red); }
+.badge-amber { background: var(--amber-dim); color: var(--amber); }
+.badge-green { background: var(--accent-dim); color: var(--accent); }
+.badge-blue { background: var(--blue-dim); color: var(--blue); }
+.badge-gray { background: var(--bg4); color: var(--text3); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: transparent; border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 8px 14px; font-size: 12px; font-weight: 500; font-family: var(--font-body); color: var(--text2); cursor: pointer; transition: all .15s; white-space: nowrap; }
+.btn:hover { background: var(--bg3); color: var(--text); border-color: var(--border2); }
+.btn:active { transform: scale(0.97); }
+.btn-accent { background: var(--accent); color: #0d0f14; border-color: var(--accent); font-weight: 500; }
+.btn-accent:hover { background: var(--accent2); border-color: var(--accent2); color: #0d0f14; }
+.btn-ghost { border-color: transparent; }
+.btn-ghost:hover { background: var(--bg3); }
+.btn-danger { border-color: rgba(255,107,107,0.3); color: var(--red); }
+.btn-danger:hover { background: var(--red-dim); }
+.btn-success { border-color: rgba(200,240,96,0.3); color: var(--accent); }
+.btn-success:hover { background: var(--accent-dim); }
+.btn-sm { padding: 5px 10px; font-size: 11px; }
+.btn-icon { padding: 6px; width: 30px; height: 30px; }
+.form-grid { display: grid; gap: 12px; margin-bottom: 16px; }
+.form-row2 { grid-template-columns: 1fr 1fr; }
+.form-row3 { grid-template-columns: 1fr 1fr 1fr; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-label { font-size: 11px; color: var(--text3); letter-spacing: .04em; text-transform: uppercase; }
+.form-input { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 12px; font-size: 13px; font-family: var(--font-body); color: var(--text); transition: border-color .15s; width: 100%; }
+.form-input:focus { outline: none; border-color: rgba(26,107,58,0.4); }
+.form-input::placeholder { color: var(--text3); }
+select.form-input { cursor: pointer; }
+.form-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.form-panel { border-top: 1px solid var(--border); padding: 20px; background: var(--bg3); display: none; }
+.form-panel.open { display: block; }
+.chart-wrap { position: relative; width: 100%; }
+.ai-wrap { display: flex; flex-direction: column; gap: 0; }
+.ai-messages { display: flex; flex-direction: column; gap: 12px; min-height: 120px; padding: 20px; }
+.ai-msg { max-width: 82%; padding: 12px 16px; border-radius: 12px; font-size: 13px; line-height: 1.65; animation: fadeIn .25s ease; }
+.ai-msg.bot { background: var(--bg3); border: 1px solid var(--border); color: var(--text); align-self: flex-start; border-bottom-left-radius: 4px; }
+.ai-msg.user { background: var(--accent-dim); border: 1px solid rgba(26,107,58,0.2); color: var(--accent); align-self: flex-end; border-bottom-right-radius: 4px; }
+.ai-msg.loading { color: var(--text3); font-style: italic; }
+.ai-footer { border-top: 1px solid var(--border); padding: 14px 20px; display: flex; flex-direction: column; gap: 10px; }
+.ai-input-row { display: flex; gap: 8px; }
+.ai-input { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; font-family: var(--font-body); color: var(--text); transition: border-color .15s; }
+.ai-input:focus { outline: none; border-color: rgba(26,107,58,0.35); }
+.ai-input::placeholder { color: var(--text3); }
+.ai-quickbtns { display: flex; flex-wrap: wrap; gap: 6px; }
+.ai-qbtn { background: var(--bg4); border: 1px solid var(--border); border-radius: 100px; padding: 5px 12px; font-size: 11px; color: var(--text2); cursor: pointer; font-family: var(--font-body); transition: all .15s; }
+.ai-qbtn:hover { background: var(--accent-dim); border-color: rgba(26,107,58,0.25); color: var(--accent); }
+.disp-row { display: flex; align-items: center; gap: 10px; }
+.disp-input { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 7px 12px; font-size: 14px; font-family: var(--font-mono); color: var(--accent); width: 180px; transition: border-color .15s; }
+.disp-input:focus { outline: none; border-color: rgba(26,107,58,0.4); }
+.flujo-pos { color: var(--accent); font-family: var(--font-mono); }
+.flujo-neg { color: var(--red); font-family: var(--font-mono); }
+.flujo-saldo-pos { color: var(--accent); font-family: var(--font-mono); font-weight: 500; text-align: right; }
+.flujo-saldo-neg { color: var(--red); font-family: var(--font-mono); font-weight: 500; text-align: right; }
+.empty { padding: 40px 20px; text-align: center; color: var(--text3); font-size: 13px; }
+.empty-icon { font-size: 28px; margin-bottom: 8px; opacity: .4; }
+.page { display: none; }
+.page.active { display: block; animation: fadeIn .25s ease; }
+@media (max-width: 768px) { .app { grid-template-columns: 1fr; } .sidebar { display: none; } .main { padding: 20px 16px; } .grid2 { grid-template-columns: 1fr; } .form-row2, .form-row3 { grid-template-columns: 1fr; } }
+</style>
+<style>
+/* ═══ FLEETCOST STYLES ═══ */
+
+#page-flota {
+  --accent: #2BB89A;
+  --accent2: #24A088;
+  --accent-dim: #2BB89A18;
+  --accent-dim2: #2BB89A35;
+  --green: #2BB89A;
+  --green-dim: #2BB89A15;
+  --amber: #D4820A;
+  --amber-dim: #D4820A18;
+  --blue: #3B7DD8;
+  --blue-dim: #3B7DD818;
+  --border3: #B8B4AA;
+  --muted: #8A8880;
+  --muted2: #6A6860;
+  --r: 12px;
+  --r-sm: 8px;
+  --r-lg: 16px;
+}
+
+#page-flota /* HEADER */
+
+
+
+
+
+
+
+.badge{
+  font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;
+  padding:5px 11px;border-radius:20px;border:1px solid var(--border3);color:var(--muted2);
+}
+50%{opacity:.4;transform:scale(.7)}
+}
+
+/* LAYOUT */
+.main-grid{display:grid;grid-template-columns:1fr 370px;gap:24px;align-items:start;}
+@media(max-width:780px){
+  .main-grid{grid-template-columns:1fr;}
+  
+}
+/* SECTION HEAD */
+.section-head{display:flex;align-items:center;gap:12px;margin:20px 0 12px;}
+.section-head:first-child{margin-top:0;}
+.section-icon{
+  width:34px;height:34px;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.section-icon svg{width:15px;height:15px;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.section-title{font-size:13px;font-weight:600;color:var(--text);}
+.section-desc{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:0.05em;margin-top:1px;}
+#page-flota /* CARD */
+.card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--r-lg);overflow:hidden;
+  margin-bottom:4px;transition:border-color .2s;
+}
+#page-flota .card:hover{border-color:var(--border2);}
+#page-flota .card-inner{padding:20px;}
+#page-flota /* FIELDS */
+.field{margin-bottom:16px;}
+#page-flota .field:last-child{margin-bottom:0;}
+#page-flota .field-label{
+  font-size:12px;font-weight:500;color:var(--muted2);margin-bottom:6px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+#page-flota .field-hint{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);}
+#page-flota .input-wrap{
+  display:flex;align-items:stretch;
+  background:var(--bg3);border:1px solid var(--border2);
+  border-radius:var(--r-sm);overflow:hidden;
+  transition:border-color .15s,box-shadow .15s;
+}
+#page-flota .input-wrap:focus-within{border-color:var(--accent-dim2);box-shadow:0 0 0 3px var(--accent-dim);}
+.input-affix{
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);
+  padding:0 12px;display:flex;align-items:center;
+  background:var(--bg4);border-right:1px solid var(--border);white-space:nowrap;flex-shrink:0;
+}
+.input-affix.suf{border-right:none;border-left:1px solid var(--border);}
+#page-flota .input-wrap input{
+  flex:1;min-width:0;border:none;background:transparent;
+  padding:0 12px;height:42px;
+  font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:400;
+  color:var(--text);outline:none;text-align:right;
+}
+#page-flota .input-wrap input::-webkit-inner-spin-button,#page-flota .input-wrap input::-webkit-outer-spin-button{-webkit-appearance:none;}
+#page-flota .rule{height:1px;background:var(--border);margin:18px 0;}
+#page-flota .sep{
+  font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;
+  color:var(--muted);display:flex;align-items:center;gap:12px;margin:24px 0 6px;
+}
+#page-flota .sep::before,#page-flota .sep::after{content:'';flex:1;height:1px;background:var(--border);}
+#page-flota .btn{
+  width:100%;padding:13px;
+  background:var(--accent);color:#fff;
+  border:none;border-radius:var(--r-sm);
+  font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.04em;
+  cursor:pointer;transition:background .15s,transform .1s,box-shadow .15s;
+  margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;
+}
+#page-flota .btn:hover{background:var(--accent2);box-shadow:0 4px 24px var(--accent-dim2);}
+#page-flota .btn:active{transform:scale(.98);}
+#page-flota .btn svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;}
+/* RESULTS */
+.results{display:flex;flex-direction:column;gap:12px;}
+.hero-card{
+  background:var(--bg2);border:1px solid var(--border2);
+  border-radius:var(--r-lg);padding:24px;
+  position:relative;overflow:hidden;
+}
+.hero-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent 0%,var(--accent) 50%,transparent 100%);
+}
+.hero-card::after{
+  content:'';position:absolute;top:0;right:0;width:200px;height:200px;
+  background:radial-gradient(circle,var(--accent-dim) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero-tag{
+  font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.15em;
+  text-transform:uppercase;color:var(--accent);margin-bottom:12px;
+  display:flex;align-items:center;gap:10px;
+}
+.hero-tag::after{content:'';flex:1;height:1px;background:var(--accent-dim2);}
+.hero-value{
+  font-size:44px;font-weight:700;letter-spacing:-0.04em;
+  color:var(--text);font-variant-numeric:tabular-nums;line-height:1;
+}
+.hero-cur{font-size:22px;font-weight:400;color:var(--muted2);margin-right:6px;}
+.hero-sub{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:10px;line-height:1.6;}
+/* METRIC GRID */
+.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.m-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--r);padding:16px 18px;transition:border-color .2s;
+}
+.m-card:hover{border-color:var(--border2);}
+.m-tag{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.m-value{font-size:19px;font-weight:600;letter-spacing:-0.02em;color:var(--text);font-variant-numeric:tabular-nums;}
+.m-sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:4px;}
+/* BREAKDOWN */
+.breakdown{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;}
+.breakdown-head{
+  padding:13px 18px;border-bottom:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;
+  font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);
+}
+.breakdown-
+.b-row{display:flex;align-items:center;gap:10px;padding:9px 18px;transition:background .1s;cursor:default;}
+.b-row:hover{background:var(--bg3);}
+.b-pip{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.b-name{flex:1;font-size:12px;color:var(--muted2);}
+.b-bar-wrap{width:54px;height:3px;background:var(--bg4);border-radius:2px;overflow:hidden;flex-shrink:0;}
+.b-bar-fill{height:100%;border-radius:2px;transition:width .5s cubic-bezier(.4,0,.2,1);}
+.b-pct{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);width:26px;text-align:right;}
+.b-amt{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);min-width:88px;text-align:right;}
+/* DIRECT COSTS */
+.direct-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.d-card{border-radius:var(--r);padding:16px 18px;border:1px solid;}
+.d-card.chofer{background:var(--green-dim);border-color:#2BB89A25;}
+.d-card.combustible{background:var(--amber-dim);border-color:#D4820A25;}
+.d-tag{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;}
+.d-card.chofer .d-tag{color:var(--green);}
+.d-card.combustible .d-tag{color:var(--amber);}
+.d-value{font-size:19px;font-weight:600;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;}
+.d-card.chofer .d-value{color:var(--green);}
+.d-card.combustible .d-value{color:var(--amber);}
+.d-sub{font-family:'JetBrains Mono',monospace;font-size:9px;margin-top:4px;}
+.d-card.chofer .d-sub{color:#2BB89A70;}
+.d-card.combustible .d-sub{color:#D4820A70;}
+/* TOTAL KM */
+.total-card{
+  background:var(--bg2);border:1px solid var(--border2);
+  border-radius:var(--r-lg);padding:22px;
+  position:relative;overflow:hidden;
+}
+.total-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent 0%,var(--accent) 50%,transparent 100%);
+}
+.total-glow{
+  position:absolute;bottom:-60px;right:-60px;
+  width:160px;height:160px;
+  background:radial-gradient(circle,var(--accent-dim2) 0%,transparent 70%);
+  pointer-events:none;
+}
+.total-tag{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.total-value{font-size:34px;font-weight:700;letter-spacing:-0.03em;color:var(--accent);font-variant-numeric:tabular-nums;line-height:1;}
+.total-cur{font-size:17px;font-weight:400;margin-right:4px;}
+.total-rows{margin-top:16px;border-top:1px solid var(--border);padding-top:14px;display:flex;flex-direction:column;gap:2px;}
+.t-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;}
+.t-row-label{
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  display:flex;align-items:center;gap:8px;
+}
+.t-pip{width:4px;height:4px;border-radius:50%;flex-shrink:0;}
+.t-row-val{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted2);}
+/* FOOTER */
+
+
+
+
+/* ANIMATIONS */
+.fade-in{animation:fadeUp .45s cubic-bezier(.4,0,.2,1) both;}
+to{opacity:1;transform:translateY(0)}
+}
+.d1{animation-delay:.06s}
+.d2{animation-delay:.12s}
+.d3{animation-delay:.18s}
+.d4{animation-delay:.24s}
+.d5{animation-delay:.3s}
+.d6{animation-delay:.36s}
+
+
+/* TAB NAV */
+.tab-nav{display:flex;gap:6px;margin-bottom:2rem;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:5px;}
+.tab-btn{display:flex;align-items:center;gap:8px;padding:9px 18px;border:none;background:transparent;border-radius:9px;font-family:'Syne',sans-serif;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .2s;}
+.tab-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+.tab-btn:hover{color:var(--text);background:var(--bg3);}
+.tab-btn.active{color:var(--text);background:var(--bg3);box-shadow:0 1px 3px rgba(0,0,0,.3);}
+.tab-count{background:var(--accent-dim2);color:var(--accent);border-radius:20px;font-size:9px;padding:2px 8px;font-family:'JetBrains Mono',monospace;letter-spacing:.05em;}
+.tab-panel{}
+
+/* SAVE BUTTON */
+.btn-save{
+  width:100%;padding:12px;margin-top:10px;
+  background:var(--green-dim);color:var(--green);
+  border:1px solid #2BB89A35;border-radius:var(--r-sm);
+  font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:.04em;
+  cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.btn-save:hover{background:#2BB89A25;box-shadow:0 4px 20px #2BB89A20;border-color:#2BB89A55;}
+.btn-save:active{transform:scale(.98);}
+.btn-save svg{width:14px;height:14px;stroke:var(--green);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.save-toast{margin-top:8px;padding:8px 14px;background:#2BB89A15;border:1px solid #2BB89A30;border-radius:var(--r-sm);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--green);text-align:center;letter-spacing:.05em;animation:fadeUp .3s both;}
+
+/* HISTORIAL */
+.hist-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;}
+.hist-title{font-size:20px;font-weight:700;letter-spacing:-.02em;}
+.hist-sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.08em;margin-top:4px;}
+.btn-clear{display:flex;align-items:center;gap:7px;padding:8px 14px;background:transparent;border:1px solid var(--border2);border-radius:var(--r-sm);color:var(--muted);font-family:'Syne',sans-serif;font-size:12px;cursor:pointer;transition:all .15s;}
+.btn-clear:hover{color:#E05A2B;border-color:#E05A2B30;background:#E05A2B08;}
+.btn-clear svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.hist-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:4rem 2rem;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);text-align:center;line-height:1.8;border:1px dashed var(--border2);border-radius:var(--r-lg);}
+.hist-empty svg{width:32px;height:32px;fill:none;stroke:var(--muted);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round;opacity:.5;}
+.hist-list{display:flex;flex-direction:column;gap:10px;margin-bottom:24px;}
+.hist-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;transition:border-color .2s;}
+.hist-card:hover{border-color:var(--border2);}
+.hist-card-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);background:var(--bg3);}
+.hist-card-left{display:flex;align-items:center;gap:12px;}
+.hist-num{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);background:var(--bg4);border:1px solid var(--border);border-radius:6px;padding:3px 8px;}
+.hist-desc{font-size:13px;font-weight:600;color:var(--text);}
+.hist-date{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.05em;}
+.hist-badge{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;padding:4px 10px;border-radius:20px;}
+.hist-badge.pos{background:#2BB89A15;border:1px solid #2BB89A30;color:var(--green);}
+.hist-badge.neg{background:#E05A2B15;border:1px solid #E05A2B30;color:#E05A2B;}
+.hist-card-body{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0;}
+.hc-stat{padding:14px 18px;border-right:1px solid var(--border);}
+.hc-stat:last-child{border-right:none;}
+.hc-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+.hc-val{font-size:14px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;}
+.hc-val.green{color:var(--green);}
+.hc-val.red{color:#E05A2B;}
+.hist-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:20px;}
+.hs-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;}
+.hs-label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.hs-value{font-size:17px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;}
+.hs-value.green{color:var(--green);}
+.trip-section{margin-top:2.5rem;border:1px solid var(--border2);border-radius:var(--r-lg);overflow:hidden;background:var(--bg2);}
+
+
+.trip-section{margin-top:2.5rem;border:1px solid var(--border2);border-radius:var(--r-lg);overflow:hidden;background:var(--bg2);}
+.trip-header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--border);background:var(--bg3);}
+.trip-header-left{display:flex;align-items:center;gap:14px;}
+.trip-icon{width:36px;height:36px;border-radius:9px;background:#2BB89A18;border:1px solid #2BB89A30;display:flex;align-items:center;justify-content:center;}
+.trip-icon svg{width:16px;height:16px;stroke:var(--green);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.trip-title{font-size:14px;font-weight:600;color:var(--text);}
+.trip-desc{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.05em;margin-top:1px;}
+.trip-badge{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;padding:4px 10px;border-radius:20px;border:1px solid #2BB89A30;color:var(--green);}
+.trip-grid{display:grid;grid-template-columns:320px 1fr 1fr;gap:0;}
+@media(max-width:900px){.trip-grid{grid-template-columns:1fr 1fr;}}
+@media(max-width:600px){.trip-grid{grid-template-columns:1fr;}}
+.trip-inputs{padding:28px;border-right:1px solid var(--border);}
+@media(max-width:600px){.trip-inputs{border-right:none;border-bottom:1px solid var(--border);}}
+.trip-result{padding:28px;display:flex;flex-direction:column;gap:14px;min-height:280px;}
+.trip-result+.trip-result{border-left:1px solid var(--border);}
+.trip-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.04em;text-align:center;line-height:1.7;}
+.gh-card{border-radius:var(--r);padding:16px 18px;border:1px solid;}
+.gh-card.pos{background:#2BB89A10;border-color:#2BB89A30;}
+.gh-card.neg{background:#E05A2B10;border-color:#E05A2B30;}
+.gh-tag{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;margin-bottom:8px;}
+.gh-card.pos .gh-tag{color:var(--green);}
+.gh-card.neg .gh-tag{color:#E05A2B;}
+.gh-value{font-size:30px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1;}
+.gh-card.pos .gh-value{color:var(--green);}
+.gh-card.neg .gh-value{color:#E05A2B;}
+.gh-sub{font-family:'JetBrains Mono',monospace;font-size:9px;margin-top:6px;}
+.gh-card.pos .gh-sub{color:#2BB89A55;}
+.gh-card.neg .gh-sub{color:#E05A2B55;}
+.trip-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.tm-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;}
+.tm-tag{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+.tm-val{font-size:15px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;}
+.tm-val.ok{color:var(--green);}
+.tm-val.alto{color:#E05A2B;}
+.tm-val.warn{color:var(--amber);}
+.tm-sub{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);margin-top:3px;}
+.trip-desglose{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden;}
+.td-head{padding:9px 14px;border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;}
+.td-row{display:flex;justify-content:space-between;align-items:center;padding:7px 14px;transition:background .1s;}
+.td-row:hover{background:var(--bg4);}
+.td-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted2);display:flex;align-items:center;gap:7px;}
+.td-pip{width:4px;height:4px;border-radius:50%;flex-shrink:0;}
+.td-val{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text);}
+.td-total{border-top:1px solid var(--border2);display:flex;justify-content:space-between;align-items:center;padding:9px 14px;}
+.td-total-label{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted2);font-weight:500;}
+.td-total-val{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);font-weight:500;}
+.cons-badge{font-family:'JetBrains Mono',monospace;font-size:9px;padding:3px 9px;border-radius:20px;}
+.cons-badge.ok{background:#2BB89A15;border:1px solid #2BB89A30;color:var(--green);}
+.cons-badge.alto{background:#E05A2B15;border:1px solid #E05A2B30;color:#E05A2B;}
+
+
+/* FleetCost extra layout */
+#page-flota .main-grid{display:grid;grid-template-columns:1fr 370px;gap:24px;align-items:start;}
+#page-flota .section-head{display:flex;align-items:center;gap:12px;margin:20px 0 12px;}
+#page-flota .section-head:first-child{margin-top:0;}
+#page-flota .section-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+#page-flota .section-icon svg{width:15px;height:15px;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+#page-flota .section-title{font-size:13px;font-weight:600;color:var(--text);}
+#page-flota .section-desc{font-family:"JetBrains Mono",monospace;font-size:9px;color:var(--muted);letter-spacing:0.05em;margin-top:1px;}
+#page-flota .card-inner{padding:20px;}
+#page-flota .field{margin-bottom:16px;}
+#page-flota .field:last-child{margin-bottom:0;}
+#page-flota .field-label{font-size:12px;font-weight:500;color:var(--muted2);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;}
+#page-flota .field-hint{font-family:"JetBrains Mono",monospace;font-size:9px;color:var(--muted);}
+#page-flota .input-wrap{display:flex;align-items:stretch;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r-sm);overflow:hidden;transition:border-color .15s,box-shadow .15s;}
+#page-flota .input-wrap:focus-within{border-color:var(--accent-dim2);box-shadow:0 0 0 3px var(--accent-dim);}
+#page-flota .input-affix{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);padding:0 12px;display:flex;align-items:center;background:var(--bg4);border-right:1px solid var(--border);white-space:nowrap;flex-shrink:0;}
+#page-flota .input-affix.suf{border-right:none;border-left:1px solid var(--border);}
+#page-flota .input-wrap input{flex:1;min-width:0;border:none;background:transparent;padding:0 12px;height:42px;font-family:"JetBrains Mono",monospace;font-size:14px;font-weight:400;color:var(--text);outline:none;text-align:right;}
+#page-flota .input-wrap input::-webkit-inner-spin-button,#page-flota .input-wrap input::-webkit-outer-spin-button{-webkit-appearance:none;}
+#page-flota .rule{height:1px;background:var(--border);margin:18px 0;}
+#page-flota .sep{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:12px;margin:24px 0 6px;}
+#page-flota .sep::before,#page-flota .sep::after{content:"";flex:1;height:1px;background:var(--border);}
+#page-flota .btn{width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:var(--r-sm);font-family:"Syne",sans-serif;font-size:13px;font-weight:700;letter-spacing:0.04em;cursor:pointer;transition:background .15s,transform .1s,box-shadow .15s;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px;}
+#page-flota .btn:hover{background:var(--accent2);box-shadow:0 4px 24px var(--accent-dim2);}
+#page-flota .btn:active{transform:scale(.98);}
+#page-flota .btn svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;}
+#page-flota .results{display:flex;flex-direction:column;gap:12px;}
+@media(max-width:780px){#page-flota .main-grid{grid-template-columns:1fr;}}
+@keyframes fade-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fade-in .35s ease both;}
+.d1{animation-delay:.05s;}.d2{animation-delay:.1s;}.d3{animation-delay:.15s;}.d4{animation-delay:.2s;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="logo">
+      <div class="logo-dot"></div>
+      flujo · flota
+    </div>
+    <div class="topbar-right">
+      <div class="saldo-pill">
+        <span class="saldo-label">Disponible</span>
+        <span id="top-saldo">$0</span>
+      </div>
+      <button class="btn btn-sm" onclick="exportJSON()">↓ Exportar</button>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="nav-section">
+      <div class="nav-item active" onclick="navigate('dashboard', this)">
+        <span class="nav-icon">◈</span> Dashboard
+      </div>
+      <div class="nav-item" onclick="navigate('cobros', this)">
+        <span class="nav-icon">↓</span> Cobros
+      </div>
+      <div class="nav-item" onclick="navigate('pagos', this)" id="nav-pagos">
+        <span class="nav-icon">↑</span> Pagos
+      </div>
+      <div class="nav-item" onclick="navigate('flujo', this)">
+        <span class="nav-icon">〜</span> Flujo
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Flota</div>
+      <div class="nav-item" onclick="navigate('flota', this)">
+        <span class="nav-icon">🚛</span> FleetCost
+      </div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Herramientas</div>
+      <div class="nav-item" onclick="navigate('ia', this)">
+        <span class="nav-icon">◎</span> Asistente IA
+      </div>
+      <div class="nav-item" onclick="navigate('config', this)">
+        <span class="nav-icon">⊙</span> Configurar
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div class="page-title">Buen día, Ignacio</div>
+        <div class="page-sub" id="dash-date"></div>
+      </div>
+      <div class="metrics" id="dash-metrics"></div>
+      <div class="alerts" id="dash-alerts"></div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Flujo acumulado</span></div>
+          <div class="card-body" style="padding:16px">
+            <div class="chart-wrap" style="height:200px"><canvas id="chart-flujo"></canvas></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Composición de pagos</span></div>
+          <div class="card-body" style="padding:16px">
+            <div class="chart-wrap" style="height:200px"><canvas id="chart-cats"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Próximos vencimientos</span></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Concepto</th><th>Vence</th><th>Monto</th><th>Urgencia</th></tr></thead>
+          <tbody id="dash-upcoming"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- COBROS -->
+    <div class="page" id="page-cobros">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div><div class="page-title">Cobros</div><div class="page-sub">Ingresos esperados</div></div>
+        <button class="btn btn-accent" onclick="toggleForm('form-cobro')">+ Nuevo cobro</button>
+      </div>
+      <div class="card">
+        <div class="form-panel" id="form-cobro">
+          <div class="form-grid form-row2">
+            <div class="form-group"><label class="form-label">Cliente / concepto</label><input class="form-input" id="c-nombre" placeholder="Ej: MAREF"></div>
+            <div class="form-group"><label class="form-label">Monto $</label><input class="form-input" id="c-monto" type="number" placeholder="0"></div>
+          </div>
+          <div class="form-grid form-row2">
+            <div class="form-group"><label class="form-label">Fecha esperada</label><input class="form-input" id="c-fecha" type="date"></div>
+            <div class="form-group"><label class="form-label">Notas</label><input class="form-input" id="c-notas" placeholder="Opcional"></div>
+          </div>
+          <div class="form-actions"><button class="btn" onclick="toggleForm('form-cobro')">Cancelar</button><button class="btn btn-accent" onclick="addCobro()">Guardar cobro</button></div>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Cliente</th><th>Fecha</th><th>Monto</th><th>Estado</th><th></th></tr></thead>
+          <tbody id="cobros-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- PAGOS -->
+    <div class="page" id="page-pagos">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div><div class="page-title">Pagos</div><div class="page-sub">Obligaciones y vencimientos</div></div>
+        <button class="btn btn-accent" onclick="toggleForm('form-pago')">+ Nuevo pago</button>
+      </div>
+      <div class="card">
+        <div class="form-panel" id="form-pago">
+          <div class="form-grid form-row2">
+            <div class="form-group"><label class="form-label">Concepto</label><input class="form-input" id="p-nombre" placeholder="Ej: AFIP"></div>
+            <div class="form-group"><label class="form-label">Monto $</label><input class="form-input" id="p-monto" type="number" placeholder="0"></div>
+          </div>
+          <div class="form-grid form-row3">
+            <div class="form-group"><label class="form-label">Fecha límite</label><input class="form-input" id="p-fecha" type="date"></div>
+            <div class="form-group"><label class="form-label">Categoría</label>
+              <select class="form-input" id="p-cat">
+                <option>Impuesto/AFIP</option><option>Alquiler</option><option>Tarjeta</option>
+                <option>Préstamo/cuota</option><option>Proveedor</option><option>Sueldo</option><option>Otro</option>
+              </select>
+            </div>
+            <div class="form-group"><label class="form-label">Notas</label><input class="form-input" id="p-notas" placeholder="Opcional"></div>
+          </div>
+          <div class="form-actions"><button class="btn" onclick="toggleForm('form-pago')">Cancelar</button><button class="btn btn-accent" onclick="addPago()">Guardar pago</button></div>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Concepto</th><th>Categoría</th><th>Vence</th><th>Monto</th><th>Estado</th><th></th></tr></thead>
+          <tbody id="pagos-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- FLUJO -->
+    <div class="page" id="page-flujo">
+      <div class="page-header"><div class="page-title">Flujo de caja</div><div class="page-sub">Proyección completa</div></div>
+      <div class="metrics" id="flujo-metrics"></div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Línea de tiempo</span></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Fecha</th><th>Concepto</th><th>Tipo</th><th>Movimiento</th><th style="text-align:right">Saldo acum.</th></tr></thead>
+          <tbody id="flujo-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- FLOTA (FleetCost) -->
+    <div class="page" id="page-flota">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div class="page-title">FleetCost</div>
+          <div class="page-sub">Calculadora de costos de transporte · Los viajes guardados se pueden registrar como cobros en Flujo</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;background:var(--accent-dim2);border:1px solid rgba(26,107,58,0.18);border-radius:100px;padding:6px 14px;font-size:12px;">
+          <span style="color:var(--text3)">Disponible Flujo:</span>
+          <span id="flota-saldo" style="font-family:var(--font-mono);color:var(--accent);font-weight:500;">$0</span>
+        </div>
+      </div>
+<!-- TAB NAV -->
+  <div class="tab-nav fade-in">
+    <button class="tab-btn active" onclick="fcSwitchTab('calculadora')" id="tab-calculadora">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+      Calculadora
+    </button>
+    <button class="tab-btn" onclick="fcSwitchTab('historial')" id="tab-historial">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Historial de viajes
+      <span class="tab-count" id="tab-count">0</span>
+    </button>
+  </div>
+
+  <div id="panel-calculadora" class="tab-panel">
+  <div class="main-grid">
+
+    <!-- ══ INPUTS ══ -->
+    <div>
+
+      <!-- KM BASE -->
+      <div class="section-head fade-in">
+        <div class="section-icon" style="background:var(--blue-dim);border:1px solid #3B7DD830;">
+          <svg viewBox="0 0 24 24" style="stroke:var(--blue);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div>
+          <div class="section-title">Kilómetros base</div>
+          <div class="section-desc">promedio mensual recorrido</div>
+        </div>
+      </div>
+      <div class="card fade-in">
+        <div class="card-inner">
+          <div class="field">
+            <div class="field-label">Kilómetros mensuales <span class="field-hint">promedio</span></div>
+            <div class="input-wrap">
+              <input type="number" id="km" value="10000" min="0" step="100" oninput="fcCalcular()">
+              <span class="input-affix suf">km / mes</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COSTOS FIJOS -->
+      <div class="section-head fade-in d1">
+        <div class="section-icon" style="background:var(--blue-dim);border:1px solid #3B7DD830;">
+          <svg viewBox="0 0 24 24" style="stroke:var(--blue);"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div>
+          <div class="section-title">Costos fijos mensuales</div>
+          <div class="section-desc">se pagan exista o no movimiento</div>
+        </div>
+      </div>
+      <div class="card fade-in d1">
+        <div class="card-inner">
+          <div class="field">
+            <div class="field-label">Seguro <span class="field-hint">prima mensual</span></div>
+            <div class="input-wrap">
+              <span class="input-affix">$</span>
+              <input type="number" id="seguro" value="320000" min="0" step="1000" oninput="fcCalcular()">
+            </div>
+          </div>
+          <div class="rule"></div>
+          <div class="field">
+            <div class="field-label">Patente / impuestos <span class="field-hint">costo anual ÷ 12</span></div>
+            <div class="input-wrap">
+              <span class="input-affix">$</span>
+              <input type="number" id="patente" value="45000" min="0" step="500" oninput="fcCalcular()">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MANTENIMIENTO -->
+      <div class="section-head fade-in d2">
+        <div class="section-icon" style="background:var(--accent-dim);border:1px solid var(--accent-dim2);">
+          <svg viewBox="0 0 24 24" style="stroke:var(--accent);"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        </div>
+        <div>
+          <div class="section-title">Mantenimiento y neumáticos</div>
+          <div class="section-desc">costos variables de operación</div>
+        </div>
+      </div>
+      <div class="card fade-in d2">
+        <div class="card-inner">
+          <div class="field">
+            <div class="field-label">Mantenimiento y reparaciones <span class="field-hint">service, filtros, repuestos</span></div>
+            <div class="input-wrap">
+              <span class="input-affix">$</span>
+              <input type="number" id="manto" value="180000" min="0" step="1000" oninput="fcCalcular()">
+            </div>
+          </div>
+          <div class="rule"></div>
+          <div class="field">
+            <div class="field-label">Aceite y lubricantes <span class="field-hint">mensual estimado</span></div>
+            <div class="input-wrap">
+              <span class="input-affix">$</span>
+              <input type="number" id="aceite" value="55000" min="0" step="500" oninput="fcCalcular()">
+            </div>
+          </div>
+          <div class="rule"></div>
+          <div class="field">
+            <div class="field-label">Cubiertas / neumáticos <span class="field-hint">prorrateo mensual</span></div>
+            <div class="input-wrap">
+              <span class="input-affix">$</span>
+              <input type="number" id="cubiertas" value="140000" min="0" step="1000" oninput="fcCalcular()">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn fade-in d2" onclick="fcCalcular()">
+        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Actualizar cálculo
+      </button>
+
+      <div class="sep">Costos directos por km</div>
+
+      <!-- CHOFER -->
+      <div class="section-head fade-in d3">
+        <div class="section-icon" style="background:var(--green-dim);border:1px solid #2BB89A30;">
+          <svg viewBox="0 0 24 24" style="stroke:var(--green);"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div>
+          <div class="section-title">Chofer</div>
+          <div class="section-desc">costo laboral por kilómetro</div>
+        </div>
+      </div>
+      <div class="card fade-in d3">
+        <div class="card-inner">
+          <div class="field">
+            <div class="field-label">Costo por km <span class="field-hint">sueldo mensual ÷ km recorridos</span></div>
+            <div class="input-wrap">
+              <span class="input-affix">$</span>
+              <input type="number" id="chofer-km" value="175" min="0" step="1" oninput="fcCalcular()">
+              <span class="input-affix suf">/ km</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMBUSTIBLE -->
+      <div class="section-head fade-in d4">
+        <div class="section-icon" style="background:var(--amber-dim);border:1px solid #D4820A30;">
+          <svg viewBox="0 0 24 24" style="stroke:var(--amber);"><path d="M3 22V8l9-6 9 6v14H3z"/><path d="M10 22V12h4v10"/></svg>
+        </div>
+        <div>
+          <div class="section-title">Combustible</div>
+          <div class="section-desc">gasoil / nafta — costo por km</div>
+        </div>
+      </div>
+      <div class="card fade-in d4">
+        <div class="card-inner">
+          <div class="field">
+            <div class="field-label">Precio por litro <span class="field-hint">gasoil / nafta actual</span></div>
+            <div class="input-wrap">
+              <span class="input-affix">$</span>
+              <input type="number" id="precio-litro" value="2082" min="0" step="10" oninput="fcCalcular()">
+              <span class="input-affix suf">/ litro</span>
+            </div>
+          </div>
+          <div class="rule"></div>
+          <div class="field">
+            <div class="field-label">Rendimiento del vehículo <span class="field-hint">eficiencia real</span></div>
+            <div class="input-wrap">
+              <input type="number" id="rendimiento" value="2.7" min="0" step="0.1" oninput="fcCalcular()">
+              <span class="input-affix suf">km / litro</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ══ DASHBOARD ══ -->
+    <div class="results">
+
+      <div class="hero-card fade-in">
+        <div class="hero-tag">Costos indirectos — mensual</div>
+        <div class="hero-value"><span class="hero-cur">$</span><span id="r-mensual">0</span></div>
+        <div class="hero-sub" id="r-mensual-sub">ingresá los valores para calcular</div>
+      </div>
+
+      <div class="metrics-grid fade-in d1">
+        <div class="m-card">
+          <div class="m-tag">Total anual</div>
+          <div class="m-value" id="r-anual">$ 0</div>
+          <div class="m-sub">proyección 12 meses</div>
+        </div>
+        <div class="m-card">
+          <div class="m-tag">Indirecto / km</div>
+          <div class="m-value" id="r-km">—</div>
+          <div class="m-sub" id="r-km-sub">costo fijo por km</div>
+        </div>
+      </div>
+
+      <div class="breakdown fade-in d2">
+        <div class="breakdown-head">
+          <span>Distribución</span>
+          <span id="r-total-rubros" style="color:var(--accent);"></span>
+        </div>
+        <div class="breakdown-body" id="breakdown-list"></div>
+      </div>
+
+      <div class="direct-grid fade-in d3">
+        <div class="d-card chofer">
+          <div class="d-tag">Chofer / km</div>
+          <div class="d-value" id="r-chofer">—</div>
+          <div class="d-sub" id="r-chofer-sub">por km recorrido</div>
+        </div>
+        <div class="d-card combustible">
+          <div class="d-tag">Combustible / km</div>
+          <div class="d-value" id="r-combustible">—</div>
+          <div class="d-sub" id="r-combustible-sub">precio ÷ rendimiento</div>
+        </div>
+      </div>
+
+      <div class="total-card fade-in d4">
+        <div class="total-glow"></div>
+        <div class="total-tag">Costo total por kilómetro recorrido</div>
+        <div class="total-value"><span class="total-cur">$</span><span id="r-total-km">—</span></div>
+        <div class="total-rows" id="r-total-rows"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SIMULADOR DE VIAJE -->
+  <div class="trip-section fade-in">
+    <div class="trip-header">
+      <div class="trip-header-left">
+        <div class="trip-icon">
+          <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+        <div>
+          <div class="trip-title">Simulador de viaje</div>
+          <div class="trip-desc">calculá la ganancia de cada flete</div>
+        </div>
+      </div>
+      <span class="trip-badge">por viaje</span>
+    </div>
+    <div class="trip-grid">
+      <div class="trip-inputs">
+        <div class="field">
+          <div class="field-label">Monto facturado <span class="field-hint">lo que cobrás por el viaje</span></div>
+          <div class="input-wrap">
+            <span class="input-affix">$</span>
+            <input type="number" id="v-facturado" value="0" min="0" step="1000" oninput="fcCalcularViaje()" placeholder="0">
+          </div>
+        </div>
+        <div class="rule"></div>
+        <div class="field">
+          <div class="field-label">Kilómetros del viaje <span class="field-hint">distancia total recorrida</span></div>
+          <div class="input-wrap">
+            <input type="number" id="v-km" value="0" min="0" step="10" oninput="fcCalcularViaje()" placeholder="0">
+            <span class="input-affix suf">km</span>
+          </div>
+        </div>
+        <div class="rule"></div>
+        <div class="field">
+          <div class="field-label">Peajes <span class="field-hint">total del viaje</span></div>
+          <div class="input-wrap">
+            <span class="input-affix">$</span>
+            <input type="number" id="v-peajes" value="0" min="0" step="500" oninput="fcCalcularViaje()" placeholder="0">
+          </div>
+        </div>
+        <div class="rule"></div>
+        <div class="field">
+          <div class="field-label">Litros cargados <span class="field-hint">lo que echó el chofer</span></div>
+          <div class="input-wrap">
+            <input type="number" id="v-litros" value="0" min="0" step="1" oninput="fcCalcularViaje()" placeholder="0">
+            <span class="input-affix suf">litros</span>
+          </div>
+        </div>
+        <div class="rule"></div>
+        <div class="field">
+          <div class="field-label">Pago al chofer <span class="field-hint">monto real por este viaje</span></div>
+          <div class="input-wrap">
+            <span class="input-affix">$</span>
+            <input type="number" id="v-chofer-pago" value="0" min="0" step="1000" oninput="fcCalcularViaje()" placeholder="0">
+          </div>
+        </div>
+        <div class="rule"></div>
+        <div class="field">
+          <div class="field-label">Descripción / destino <span class="field-hint">opcional</span></div>
+          <div class="input-wrap">
+            <input type="text" id="v-desc" placeholder="Ej: Mendoza → Buenos Aires" style="text-align:left;font-family:'Syne',sans-serif;font-size:13px;">
+          </div>
+        </div>
+        <button class="btn-save" onclick="fcGuardarViaje()">
+          <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Guardar viaje
+        </button>
+        <div id="save-toast" class="save-toast" style="display:none;">✓ Viaje guardado</div>
+      </div>
+      <div class="trip-result" id="trip-result-a">
+        <div class="trip-empty">
+          <svg viewBox="0 0 24 24" style="width:26px;height:26px;stroke:var(--muted);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          <div>completá los datos<br>del viaje</div>
+        </div>
+      </div>
+      <div class="trip-result" id="trip-result-b">
+      </div>
+    </div>
+
+  </div><!-- end panel-calculadora -->
+
+  <!-- HISTORIAL PANEL -->
+  <div id="panel-historial" class="tab-panel" style="display:none;">
+    <div class="hist-header">
+      <div>
+        <div class="hist-title">Historial de viajes</div>
+        <div class="hist-sub">todos los viajes guardados en esta sesión</div>
+      </div>
+      <button class="btn-clear" onclick="fcLimpiarHistorial()">
+        <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        Limpiar todo
+      </button>
+    </div>
+    <div id="hist-empty" class="hist-empty">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <div>No hay viajes guardados todavía.<br>Cargá los datos de un viaje y presioná <strong>Guardar viaje</strong>.</div>
+    </div>
+    <div id="hist-list" class="hist-list"></div>
+    <div id="hist-summary" class="hist-summary" style="display:none;">
+      <div class="hs-item">
+        <div class="hs-label">Viajes guardados</div>
+        <div class="hs-value" id="hs-count">0</div>
+      </div>
+      <div class="hs-item">
+        <div class="hs-label">Total facturado</div>
+        <div class="hs-value" id="hs-facturado">$ 0</div>
+      </div>
+      <div class="hs-item">
+        <div class="hs-label">Total ganancia</div>
+        <div class="hs-value green" id="hs-ganancia">$ 0</div>
+      </div>
+      <div class="hs-item">
+        <div class="hs-label">Margen promedio</div>
+        <div class="hs-value" id="hs-margen">0%</div>
+      </div>
+      <div class="hs-item">
+        <div class="hs-label">Km totales</div>
+        <div class="hs-value" id="hs-km">0 km</div>
+      </div>
+    </div>
+  </div><!-- end panel-historial -->
+    </div><!-- end page-flota -->
+
+    <!-- IA -->
+    <div class="page" id="page-ia">
+      <div class="page-header"><div class="page-title">Asistente IA</div><div class="page-sub">Análisis inteligente de tu situación financiera</div></div>
+      <div class="card">
+        <div class="ai-wrap">
+          <div class="ai-messages" id="ai-messages"></div>
+          <div class="ai-footer">
+            <div class="ai-input-row">
+              <input class="ai-input" id="ai-input" placeholder="Preguntame lo que quieras sobre tus finanzas..." onkeydown="if(event.key==='Enter')sendAI()">
+              <button class="btn btn-accent" onclick="sendAI()">Enviar</button>
+            </div>
+            <div class="ai-quickbtns">
+              <button class="ai-qbtn" onclick="askQuick('¿Qué pago primero con lo que tengo disponible?')">¿Qué pago primero?</button>
+              <button class="ai-qbtn" onclick="askQuick('¿En algún momento quedo con saldo negativo? ¿Cuándo?')">¿Quedo en rojo?</button>
+              <button class="ai-qbtn" onclick="askQuick('Resumime el panorama general de mi flujo de caja')">Resumen general</button>
+              <button class="ai-qbtn" onclick="askQuick('¿Qué cobro es más crítico para cubrir mis compromisos?')">¿Cobro más crítico?</button>
+              <button class="ai-qbtn" onclick="askQuick('Dame una estrategia concreta para los próximos 7 días')">Plan 7 días</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIG -->
+    <div class="page" id="page-config">
+      <div class="page-header"><div class="page-title">Configuración</div><div class="page-sub">Saldo y datos</div></div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Saldo disponible actual</span></div>
+        <div class="card-body">
+          <p style="color:var(--text3);font-size:13px;margin-bottom:12px">Ajustá el saldo disponible. Esto afecta todas las proyecciones.</p>
+          <div class="disp-row">
+            <input class="disp-input" id="conf-saldo" type="number" placeholder="0">
+            <button class="btn btn-accent" onclick="saveSaldo()">Actualizar</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Datos</span></div>
+        <div class="card-body" style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn" onclick="exportJSON()">↓ Exportar JSON</button>
+          <button class="btn btn-danger" onclick="resetData()">⚠ Borrar todo</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+<script>
+
+const TODAY = '2026-04-13';
+const fmt = v => '$\u00a0' + Math.round(v).toLocaleString('es-AR');
+const fmtDate = d => { if(!d) return ''; const p = d.split('-'); return p[2]+'/'+p[1]+'/'+p[0].slice(2); };
+const diffDays = d => Math.ceil((new Date(d) - new Date(TODAY)) / 86400000);
+
+function defaultData() {
+  return {
+    disponible: 3800000,
+    cobros: [
+      {id:1,nombre:'25 de Mayo 16-2',monto:350000,fecha:'2026-03-29',cobrado:false,notas:''},
+      {id:2,nombre:'SAMA',monto:437360,fecha:'2026-03-31',cobrado:false,notas:''},
+      {id:3,nombre:'Chia Orrego',monto:420000,fecha:'2026-04-05',cobrado:false,notas:''},
+      {id:4,nombre:'MAREF',monto:1210000,fecha:'2026-04-09',cobrado:false,notas:''},
+      {id:5,nombre:'MYA',monto:2757815,fecha:'2026-04-10',cobrado:false,notas:''},
+      {id:6,nombre:'San Máximo',monto:3666542,fecha:'2026-04-11',cobrado:false,notas:''},
+      {id:7,nombre:'Chia Orrego',monto:250000,fecha:'2026-04-13',cobrado:false,notas:''},
+      {id:8,nombre:'San Máximo',monto:3683710,fecha:'2026-04-13',cobrado:false,notas:''}
+    ],
+    pagos: [
+      {id:1,nombre:'Anticipo ganancias',monto:1120000,fecha:'2026-04-10',pagado:false,cat:'Impuesto/AFIP',notas:'Lo antes posible'},
+      {id:2,nombre:'Alq Vivian',monto:900000,fecha:'2026-04-10',pagado:false,cat:'Alquiler',notas:'Plazo máx 10'},
+      {id:3,nombre:'Tarjeta',monto:2500000,fecha:'2026-04-10',pagado:false,cat:'Tarjeta',notas:'Plazo máx 10'},
+      {id:4,nombre:'Mentoría',monto:1704000,fecha:'2026-04-10',pagado:false,cat:'Otro',notas:'Plazo máx 10'},
+      {id:5,nombre:'Planes AFIP',monto:936832,fecha:'2026-04-09',pagado:false,cat:'Impuesto/AFIP',notas:''},
+      {id:6,nombre:'Cheques San Juan y Solis',monto:600000,fecha:'2026-04-10',pagado:false,cat:'Proveedor',notas:'359390+359407'},
+      {id:7,nombre:'Alquiler Ramiro',monto:990000,fecha:'2026-04-15',pagado:false,cat:'Alquiler',notas:'Plazo máx 15'}
+    ]
+  };
+}
+
+let data = (() => { try { const d = localStorage.getItem('flujo_v1'); return d ? JSON.parse(d) : defaultData(); } catch(e) { return defaultData(); } })();
+function save() { localStorage.setItem('flujo_v1', JSON.stringify(data)); updateTopbar(); }
+
+function updateTopbar() {
+  document.getElementById('top-saldo').textContent = fmt(data.disponible);
+  const fs = document.getElementById('flota-saldo');
+  if(fs) fs.textContent = fmt(data.disponible);
+}
+
+let chartFlujo = null, chartCats = null;
+function navigate(page, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  el.classList.add('active');
+  if(page === 'dashboard') renderDashboard();
+  if(page === 'cobros') renderCobros();
+  if(page === 'pagos') renderPagos();
+  if(page === 'flujo') renderFlujo();
+  if(page === 'flota') { fcInitFlota(); updateTopbar(); }
+  if(page === 'ia') initIA();
+  if(page === 'config') { document.getElementById('conf-saldo').value = data.disponible; }
+}
+
+function toggleForm(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('open');
+}
+
+function calcFlujo() {
+  const events = [{fecha: TODAY, concepto: 'Saldo inicial', tipo: 'inicio', monto: data.disponible}];
+  data.cobros.filter(c => !c.cobrado).forEach(c => events.push({fecha:c.fecha, concepto:c.nombre, tipo:'cobro', monto:c.monto}));
+  data.pagos.filter(p => !p.pagado).forEach(p => events.push({fecha:p.fecha, concepto:p.nombre, tipo:'pago', monto:-p.monto}));
+  events.sort((a,b) => a.fecha.localeCompare(b.fecha));
+  let saldo = 0;
+  return events.map(e => { saldo += e.monto; return {...e, saldo}; });
+}
+
+function renderDashboard() {
+  const now = new Date();
+  document.getElementById('dash-date').textContent = now.toLocaleDateString('es-AR', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+  const flujo = calcFlujo();
+  const totalCobros = data.cobros.filter(c=>!c.cobrado).reduce((a,c)=>a+c.monto,0);
+  const totalPagos = data.pagos.filter(p=>!p.pagado).reduce((a,p)=>a+p.monto,0);
+  const saldoFinal = flujo.length ? flujo[flujo.length-1].saldo : data.disponible;
+  const minSaldo = Math.min(...flujo.map(f=>f.saldo));
+  document.getElementById('dash-metrics').innerHTML = `
+    <div class="metric-card green"><div class="metric-label">Disponible hoy</div><div class="metric-value green">${fmt(data.disponible)}</div><div class="metric-sub">en banco + efectivo</div></div>
+    <div class="metric-card blue"><div class="metric-label">Cobros pendientes</div><div class="metric-value blue">${fmt(totalCobros)}</div><div class="metric-sub">${data.cobros.filter(c=>!c.cobrado).length} cobros</div></div>
+    <div class="metric-card red"><div class="metric-label">Pagos pendientes</div><div class="metric-value red">${fmt(totalPagos)}</div><div class="metric-sub">${data.pagos.filter(p=>!p.pagado).length} obligaciones</div></div>
+    <div class="metric-card ${saldoFinal>=0?'green':'red'}"><div class="metric-label">Saldo proyectado</div><div class="metric-value ${saldoFinal>=0?'green':'red'}">${fmt(saldoFinal)}</div><div class="metric-sub">mínimo ${fmt(minSaldo)}</div></div>
+  `;
+  let alerts = '';
+  const vencidos = data.pagos.filter(p=>!p.pagado && p.fecha <= TODAY);
+  if(vencidos.length) alerts += `<div class="alert danger"><span class="alert-icon">⚠</span> ${vencidos.length} pago(s) vencido(s): ${vencidos.map(v=>v.nombre).join(', ')} — total ${fmt(vencidos.reduce((a,p)=>a+p.monto,0))}</div>`;
+  if(minSaldo < 0) alerts += `<div class="alert danger"><span class="alert-icon">⚠</span> Saldo negativo proyectado. Mínimo: ${fmt(minSaldo)}.</div>`;
+  const proximos7 = data.pagos.filter(p=>!p.pagado && p.fecha > TODAY && diffDays(p.fecha) <= 7);
+  if(proximos7.length) alerts += `<div class="alert warning"><span class="alert-icon">◎</span> ${proximos7.length} pago(s) en los próximos 7 días por ${fmt(proximos7.reduce((a,p)=>a+p.monto,0))}</div>`;
+  if(!alerts) alerts = `<div class="alert success"><span class="alert-icon">✓</span> Sin alertas críticas.</div>`;
+  document.getElementById('dash-alerts').innerHTML = alerts;
+  if(chartFlujo) { chartFlujo.destroy(); chartFlujo = null; }
+  const labels = flujo.map(f => fmtDate(f.fecha));
+  const saldos = flujo.map(f => f.saldo);
+  chartFlujo = new Chart(document.getElementById('chart-flujo'), {
+    type:'bar', data:{labels, datasets:[{label:'Saldo',data:saldos,backgroundColor:saldos.map(s=>s>=0?'rgba(26,107,58,0.75)':'rgba(192,57,43,0.75)'),borderRadius:4,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>fmt(ctx.raw)},backgroundColor:'#ffffff',titleColor:'#5a5650',bodyColor:'#1a1814',borderColor:'rgba(0,0,0,0.1)',borderWidth:1}},
+    scales:{x:{ticks:{color:'#9a9690',font:{size:10,family:'DM Mono'},autoSkip:false,maxRotation:45},grid:{color:'rgba(0,0,0,0.04)'},border:{color:'rgba(0,0,0,0.07)'}},y:{ticks:{color:'#9a9690',font:{size:10,family:'DM Mono'},callback:v=>'$'+(v/1000000).toFixed(1)+'M'},grid:{color:'rgba(0,0,0,0.04)'},border:{color:'rgba(0,0,0,0.07)'}}}}
+  });
+  if(chartCats) { chartCats.destroy(); chartCats = null; }
+  const catMap = {};
+  data.pagos.filter(p=>!p.pagado).forEach(p => { catMap[p.cat] = (catMap[p.cat]||0) + p.monto; });
+  const catLabels = Object.keys(catMap);
+  const catColors = ['rgba(26,107,58,0.8)','rgba(26,95,168,0.8)','rgba(192,57,43,0.8)','rgba(183,96,10,0.8)','rgba(120,70,180,0.8)','rgba(20,140,100,0.8)','rgba(160,80,40,0.8)'];
+  chartCats = new Chart(document.getElementById('chart-cats'), {
+    type:'doughnut', data:{labels:catLabels,datasets:[{data:catLabels.map(k=>catMap[k]),backgroundColor:catColors.slice(0,catLabels.length),borderWidth:2,borderColor:'#ffffff',hoverOffset:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'right',labels:{color:'#5a5650',font:{size:11,family:'DM Sans'},boxWidth:10,padding:10}},tooltip:{callbacks:{label:ctx=>ctx.label+': '+fmt(ctx.raw)},backgroundColor:'#ffffff',titleColor:'#5a5650',bodyColor:'#1a1814',borderColor:'rgba(0,0,0,0.1)',borderWidth:1}},cutout:'65%'}
+  });
+  const ups = data.pagos.filter(p=>!p.pagado).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,6);
+  document.getElementById('dash-upcoming').innerHTML = ups.length ? ups.map(p => {
+    const d = diffDays(p.fecha);
+    const badge = d < 0 ? `<span class="badge badge-red">Vencido</span>` : d === 0 ? `<span class="badge badge-red">Hoy</span>` : d <= 3 ? `<span class="badge badge-amber">${d}d</span>` : `<span class="badge badge-gray">${d}d</span>`;
+    return `<tr><td>${p.nombre}<br><span style="color:var(--text3);font-size:11px">${p.cat}</span></td><td>${fmtDate(p.fecha)}</td><td class="mono">${fmt(p.monto)}</td><td>${badge}</td></tr>`;
+  }).join('') : `<tr><td colspan="4" class="empty"><div class="empty-icon">✓</div>Sin pagos pendientes</td></tr>`;
+  updateNavBadge();
+}
+
+function updateNavBadge() {
+  const urgentes = data.pagos.filter(p=>!p.pagado && diffDays(p.fecha) <= 3).length;
+  const nav = document.getElementById('nav-pagos');
+  const existing = nav.querySelector('.nav-badge');
+  if(existing) existing.remove();
+  if(urgentes > 0) nav.innerHTML += `<span class="nav-badge">${urgentes}</span>`;
+}
+
+function renderCobros() {
+  const sorted = [...data.cobros].sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  document.getElementById('cobros-tbody').innerHTML = sorted.length ? sorted.map(c => `
+    <tr class="${c.cobrado?'paid':''}">
+      <td>${c.nombre}${c.notas?`<br><span style="color:var(--text3);font-size:11px">${c.notas}</span>`:''}</td>
+      <td>${fmtDate(c.fecha)}</td><td class="mono">${fmt(c.monto)}</td>
+      <td>${c.cobrado ? '<span class="badge badge-green">Cobrado</span>' : '<span class="badge badge-blue">Pendiente</span>'}</td>
+      <td><div style="display:flex;gap:6px"><button class="btn btn-sm ${c.cobrado?'':'btn-success'}" onclick="toggleCobro(${c.id})">${c.cobrado?'Deshacer':'✓ Cobrado'}</button><button class="btn btn-sm btn-icon btn-danger" onclick="delCobro(${c.id})">✕</button></div></td>
+    </tr>`).join('') : `<tr><td colspan="5" class="empty"><div class="empty-icon">↓</div>No hay cobros cargados</td></tr>`;
+}
+
+function addCobro() {
+  const n = document.getElementById('c-nombre').value.trim();
+  const m = parseFloat(document.getElementById('c-monto').value);
+  const f = document.getElementById('c-fecha').value;
+  if(!n||!m||!f) return alert('Completá nombre, monto y fecha');
+  data.cobros.push({id:Date.now(), nombre:n, monto:m, fecha:f, cobrado:false, notas:document.getElementById('c-notas').value});
+  save(); renderCobros(); toggleForm('form-cobro');
+  ['c-nombre','c-monto','c-fecha','c-notas'].forEach(id => document.getElementById(id).value='');
+}
+
+function toggleCobro(id) {
+  const c = data.cobros.find(x=>x.id===id); if(!c) return;
+  c.cobrado = !c.cobrado; data.disponible += c.cobrado ? c.monto : -c.monto;
+  save(); renderCobros();
+}
+
+function delCobro(id) {
+  if(!confirm('¿Eliminar este cobro?')) return;
+  data.cobros = data.cobros.filter(x=>x.id!==id); save(); renderCobros();
+}
+
+function renderPagos() {
+  const sorted = [...data.pagos].sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  document.getElementById('pagos-tbody').innerHTML = sorted.length ? sorted.map(p => {
+    const d = diffDays(p.fecha);
+    const badge = p.pagado ? '<span class="badge badge-green">Pagado</span>' : d < 0 ? '<span class="badge badge-red">Vencido</span>' : d <= 3 ? `<span class="badge badge-amber">${d}d</span>` : `<span class="badge badge-gray">${d}d</span>`;
+    return `<tr class="${p.pagado?'paid':''}">
+      <td>${p.nombre}${p.notas?`<br><span style="color:var(--text3);font-size:11px">${p.notas}</span>`:''}</td>
+      <td><span class="badge badge-gray" style="font-size:10px">${p.cat}</span></td>
+      <td>${fmtDate(p.fecha)}</td><td class="mono">${fmt(p.monto)}</td><td>${badge}</td>
+      <td><div style="display:flex;gap:6px"><button class="btn btn-sm ${p.pagado?'':'btn-success'}" onclick="togglePago(${p.id})">${p.pagado?'Deshacer':'✓ Pagado'}</button><button class="btn btn-sm btn-icon btn-danger" onclick="delPago(${p.id})">✕</button></div></td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="6" class="empty"><div class="empty-icon">↑</div>No hay pagos cargados</td></tr>`;
+}
+
+function addPago() {
+  const n = document.getElementById('p-nombre').value.trim();
+  const m = parseFloat(document.getElementById('p-monto').value);
+  const f = document.getElementById('p-fecha').value;
+  if(!n||!m||!f) return alert('Completá nombre, monto y fecha');
+  data.pagos.push({id:Date.now(), nombre:n, monto:m, fecha:f, pagado:false, cat:document.getElementById('p-cat').value, notas:document.getElementById('p-notas').value});
+  save(); renderPagos(); toggleForm('form-pago');
+  ['p-nombre','p-monto','p-fecha','p-notas'].forEach(id => document.getElementById(id).value='');
+}
+
+function togglePago(id) {
+  const p = data.pagos.find(x=>x.id===id); if(!p) return;
+  p.pagado = !p.pagado; data.disponible += p.pagado ? -p.monto : p.monto;
+  save(); renderPagos();
+}
+
+function delPago(id) {
+  if(!confirm('¿Eliminar este pago?')) return;
+  data.pagos = data.pagos.filter(x=>x.id!==id); save(); renderPagos();
+}
+
+function renderFlujo() {
+  const flujo = calcFlujo();
+  const totalIn = data.disponible + data.cobros.filter(c=>!c.cobrado).reduce((a,c)=>a+c.monto,0);
+  const totalOut = data.pagos.filter(p=>!p.pagado).reduce((a,p)=>a+p.monto,0);
+  const saldoFinal = flujo.length ? flujo[flujo.length-1].saldo : data.disponible;
+  document.getElementById('flujo-metrics').innerHTML = `
+    <div class="metric-card green"><div class="metric-label">Total ingresos</div><div class="metric-value green">${fmt(totalIn)}</div></div>
+    <div class="metric-card red"><div class="metric-label">Total egresos</div><div class="metric-value red">${fmt(totalOut)}</div></div>
+    <div class="metric-card ${saldoFinal>=0?'green':'red'}"><div class="metric-label">Resultado neto</div><div class="metric-value ${saldoFinal>=0?'green':'red'}">${fmt(saldoFinal)}</div></div>
+  `;
+  document.getElementById('flujo-tbody').innerHTML = flujo.map(f => `
+    <tr>
+      <td style="font-family:var(--font-mono);font-size:12px;color:var(--text3)">${fmtDate(f.fecha)}</td>
+      <td>${f.concepto}</td>
+      <td>${f.tipo==='cobro'?'<span class="badge badge-green">Cobro</span>':f.tipo==='pago'?'<span class="badge badge-red">Pago</span>':'<span class="badge badge-blue">Inicial</span>'}</td>
+      <td class="${f.monto>=0?'flujo-pos':'flujo-neg'}">${f.monto>0?'+':''}${fmt(f.monto)}</td>
+      <td class="${f.saldo>=0?'flujo-saldo-pos':'flujo-saldo-neg'}">${fmt(f.saldo)}</td>
+    </tr>`).join('');
+}
+
+let aiHistory = [];
+let iaInited = false;
+function initIA() {
+  if(iaInited) return; iaInited = true;
+  const flujo = calcFlujo();
+  const minSaldo = Math.min(...flujo.map(f=>f.saldo));
+  const totalPagos = data.pagos.filter(p=>!p.pagado).reduce((a,p)=>a+p.monto,0);
+  addBotMsg(`Hola Ignacio. Tenés <strong style="color:var(--accent)">${fmt(data.disponible)}</strong> disponibles hoy y <strong style="color:var(--red)">${fmt(totalPagos)}</strong> en pagos pendientes. El saldo proyectado mínimo es <strong style="color:${minSaldo<0?'var(--red)':'var(--accent)}'}">${fmt(minSaldo)}</strong>. ¿En qué te ayudo?`);
+}
+function addBotMsg(text) { aiHistory.push({role:'assistant', text}); renderMsgs(); }
+function renderMsgs() {
+  document.getElementById('ai-messages').innerHTML = aiHistory.map(m=>`<div class="ai-msg ${m.role==='assistant'?'bot':'user'}">${m.text}</div>`).join('');
+  const el = document.getElementById('ai-messages'); el.scrollTop = el.scrollHeight;
+}
+async function askQuick(q) { document.getElementById('ai-input').value = q; await sendAI(); }
+async function sendAI() {
+  const input = document.getElementById('ai-input');
+  const q = input.value.trim(); if(!q) return;
+  input.value = ''; aiHistory.push({role:'user', text: q}); renderMsgs();
+  addBotMsg('<em style="color:var(--text3)">Analizando tu situación...</em>');
+  const flujo = calcFlujo();
+  const systemPrompt = `Sos un asesor financiero de confianza para Ignacio, empresario de Mendoza, Argentina. Hablale de vos a vos, en español rioplatense. Sé directo, concreto y útil. No uses listas largas, respondé en 2-4 oraciones máximo salvo que te pidan un análisis detallado.\n\nDATOS ACTUALES (${TODAY}):\n- Disponible hoy: $${data.disponible.toLocaleString('es-AR')}\n- Cobros pendientes: ${data.cobros.filter(c=>!c.cobrado).map(c=>`${c.nombre} $${c.monto.toLocaleString('es-AR')} el ${c.fecha}`).join(' | ')}\n- Pagos pendientes: ${data.pagos.filter(p=>!p.pagado).map(p=>`${p.nombre} (${p.cat}) $${p.monto.toLocaleString('es-AR')} vence ${p.fecha}`).join(' | ')}\n- Flujo proyectado: ${flujo.map(f=>`${f.fecha}: ${f.concepto} → saldo $${Math.round(f.saldo).toLocaleString('es-AR')}`).join(' | ')}`;
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({model:'claude-sonnet-4-20250514', max_tokens:1000, system:systemPrompt, messages:aiHistory.filter(m=>m.text&&!m.text.includes('Analizando')).map(m=>({role:m.role==='bot'||m.role==='assistant'?'assistant':'user', content:m.text.replace(/<[^>]+>/g,'')}))})});
+    const d = await res.json();
+    const reply = d.content?.map(c=>c.text||'').join('') || 'No pude obtener respuesta.';
+    aiHistory[aiHistory.length-1] = {role:'assistant', text: reply};
+  } catch(e) { aiHistory[aiHistory.length-1] = {role:'assistant', text:'Error al conectar.'}; }
+  renderMsgs();
+}
+
+function saveSaldo() {
+  const v = parseFloat(document.getElementById('conf-saldo').value);
+  if(isNaN(v)) return alert('Ingresá un número válido');
+  data.disponible = v; save(); alert('Saldo actualizado a ' + fmt(v));
+}
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'flujo-'+TODAY+'.json'; a.click();
+}
+function resetData() {
+  if(!confirm('¿Borrar TODOS los datos? Esta acción no se puede deshacer.')) return;
+  localStorage.removeItem('flujo_v1'); location.reload();
+}
+
+updateTopbar();
+renderDashboard();
+
+
+/* ═══ FLEETCOST JS ═══ */
+const FC_COLORS=['#3B7DD8','#D4820A','#2BB89A','#E05A2B','#8B5CF6'];
+function fcFmtN(n){ return Math.round(n).toLocaleString('es-AR'); }
+function fcFmtM(n){ return '$ '+fcFmtN(n); }
+
+let _fcTotalKmG=0;
+
+function fcCalcular(){
+  const km=parseFloat(document.getElementById('km').value)||0;
+  const rubros=[
+    {nombre:'Seguro',          val:parseFloat(document.getElementById('seguro').value)||0},
+    {nombre:'Patente/Impuest.',val:parseFloat(document.getElementById('patente').value)||0},
+    {nombre:'Mantenimiento',   val:parseFloat(document.getElementById('manto').value)||0},
+    {nombre:'Aceite',          val:parseFloat(document.getElementById('aceite').value)||0},
+    {nombre:'Cubiertas',       val:parseFloat(document.getElementById('cubiertas').value)||0},
+  ];
+  const total=rubros.reduce((s,r)=>s+r.val,0);
+  const anual=total*12;
+  const indKm=km>0?total/km:null;
+  const max=Math.max(...rubros.map(r=>r.val),1);
+
+  document.getElementById('r-mensual').textContent=fcFmtN(total);
+  document.getElementById('r-mensual-sub').textContent=
+    total>0?`${rubros.filter(r=>r.val>0).length} rubros activos · anual ${fcFmtM(anual)}`
+           :'ingresá los valores para calcular';
+  document.getElementById('r-anual').textContent=fcFmtM(anual);
+  if(indKm!==null){
+    document.getElementById('r-km').textContent=fcFmtM(indKm);
+    document.getElementById('r-km-sub').textContent=fcFmtN(km)+' km / mes';
+  } else {
+    document.getElementById('r-km').textContent='—';
+    document.getElementById('r-km-sub').textContent='ingresá los km';
+  }
+
+  document.getElementById('r-total-rubros').textContent=fcFmtM(total);
+  document.getElementById('breakdown-list').innerHTML=rubros.map((r,i)=>{
+    const pct=total>0?Math.round(r.val/total*100):0;
+    const w=Math.round(r.val/max*100);
+    return `<div class="b-row">
+      <div class="b-pip" style="background:${FC_COLORS[i]};"></div>
+      <div class="b-name">${r.nombre}</div>
+      <div class="b-bar-wrap"><div class="b-bar-fill" style="width:${w}%;background:${FC_COLORS[i]};opacity:.7;"></div></div>
+      <div class="b-pct">${pct}%</div>
+      <div class="b-amt">${fcFmtM(r.val)}</div>
+    </div>`;
+  }).join('');
+
+  const choferKm=parseFloat(document.getElementById('chofer-km').value)||0;
+  const precioL=parseFloat(document.getElementById('precio-litro').value)||0;
+  const rend=parseFloat(document.getElementById('rendimiento').value)||0;
+  const combustKm=rend>0?precioL/rend:0;
+
+  document.getElementById('r-chofer').textContent=choferKm>0?fcFmtM(choferKm):'—';
+  document.getElementById('r-chofer-sub').textContent=choferKm>0?'por km recorrido':'ingresá la tarifa';
+  document.getElementById('r-combustible').textContent=combustKm>0?fcFmtM(combustKm):'—';
+  document.getElementById('r-combustible-sub').textContent=combustKm>0?rend.toFixed(1)+' km / litro':'ingresá precio y rendimiento';
+
+  const totalKm=(indKm||0)+choferKm+combustKm;
+  _fcTotalKmG=totalKm;
+  if(km>0&&totalKm>0){
+    document.getElementById('r-total-km').textContent=fcFmtN(totalKm);
+    document.getElementById('r-total-rows').innerHTML=[
+      {label:'Costos indirectos / km',val:indKm,color:'#3B7DD8'},
+      {label:'Chofer / km',val:choferKm,color:'#2BB89A'},
+      {label:'Combustible / km',val:combustKm,color:'#D4820A'},
+    ].map(row=>`<div class="t-row">
+      <span class="t-row-label" style="color:${row.color};"><span class="t-pip" style="background:${row.color};"></span>${row.label}</span>
+      <span class="t-row-val">${row.val>0?fcFmtM(row.val):'—'}</span>
+    </div>`).join('');
+  } else {
+    document.getElementById('r-total-km').textContent='—';
+    document.getElementById('r-total-rows').innerHTML=
+      '<div class="t-row"><span class="t-row-label" style="color:var(--muted);"><span class="t-pip" style="background:var(--muted);"></span>Completá todos los datos para ver el total</span></div>';
+  }
+  fcCalcularViaje();
+}
+
+function fcCalcularViaje(){
+  const facturado  = parseFloat(document.getElementById('v-facturado').value)||0;
+  const vkm        = parseFloat(document.getElementById('v-km').value)||0;
+  const peajes     = parseFloat(document.getElementById('v-peajes').value)||0;
+  const litros     = parseFloat(document.getElementById('v-litros').value)||0;
+  const choferPago = parseFloat(document.getElementById('v-chofer-pago').value)||0;
+  const precioL    = parseFloat(document.getElementById('precio-litro').value)||0;
+  const rendTeo    = parseFloat(document.getElementById('rendimiento').value)||0;
+
+  const elA = document.getElementById('trip-result-a');
+  const elB = document.getElementById('trip-result-b');
+
+  if(facturado===0 && vkm===0 && peajes===0 && litros===0){
+    elA.innerHTML=`<div class="trip-empty">
+      <svg viewBox="0 0 24 24" style="width:26px;height:26px;stroke:var(--muted);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      <div>completá los datos<br>del viaje</div>
+    </div>`;
+    elB.innerHTML='';
+    return;
+  }
+
+  const costoKm    = _fcTotalKmG;
+  const costoViaje = costoKm * vkm + peajes + choferPago;
+  const ganancia   = facturado - costoViaje;
+  const margen     = facturado > 0 ? ganancia/facturado*100 : 0;
+  const isPos      = ganancia >= 0;
+
+  // Consumo cada 100 km
+  const consumoReal = (litros > 0 && vkm > 0) ? (litros / vkm * 100) : null;
+  const consumoTeo  = rendTeo > 0 ? (100 / rendTeo) : null;
+  const diff        = (consumoReal !== null && consumoTeo !== null) ? consumoReal - consumoTeo : null;
+  const isAlto      = diff !== null && diff > consumoTeo * 0.1;
+  const costoLitros = litros > 0 ? litros * precioL : null;
+
+  elA.innerHTML=`
+    <div class="gh-card ${isPos?'pos':'neg'}">
+      <div class="gh-tag">${isPos?'ganancia neta':'pérdida neta'}</div>
+      <div class="gh-value">${isPos?'':'- '}${fcFmtM(Math.abs(ganancia))}</div>
+      <div class="gh-sub">margen ${margen.toFixed(1)}% · sobre ${fcFmtM(facturado)} facturado</div>
+    </div>
+    <div class="trip-metrics">
+      <div class="tm-card">
+        <div class="tm-tag">Costo total del viaje</div>
+        <div class="tm-val">${fcFmtM(costoViaje)}</div>
+        <div class="tm-sub">${vkm>0?vkm.toLocaleString('es-AR')+' km recorridos':'sin km'}</div>
+      </div>
+      <div class="tm-card">
+        <div class="tm-tag">Costo operativo / km</div>
+        <div class="tm-val">${costoKm>0?fcFmtM(costoKm):'—'}</div>
+        <div class="tm-sub">todos los rubros incluidos</div>
+      </div>
+    </div>
+  `;
+
+  elB.innerHTML=`
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;">Desglose de costos del viaje</div>
+    <div class="trip-desglose">
+      <div class="td-head"><span>Concepto</span><span>Monto</span></div>
+      <div class="td-row">
+        <span class="td-label"><span class="td-pip" style="background:#3B7DD8;"></span>Costo operativo (km)</span>
+        <span class="td-val">${fcFmtM(costoKm*vkm)}</span>
+      </div>
+      <div class="td-row">
+        <span class="td-label"><span class="td-pip" style="background:#2BB89A;"></span>Chofer (real)</span>
+        <span class="td-val">${choferPago>0?fcFmtM(choferPago):'—'}</span>
+      </div>
+      <div class="td-row">
+        <span class="td-label"><span class="td-pip" style="background:#2BB89A;"></span>Peajes</span>
+        <span class="td-val">${fcFmtM(peajes)}</span>
+      </div>
+      <div class="td-total">
+        <span class="td-total-label">Total costos</span>
+        <span class="td-total-val">${fcFmtM(costoViaje)}</span>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding:12px 14px;border-radius:var(--r-sm);background:${isPos?'#2BB89A10':'#E05A2B10'};border:1px solid ${isPos?'#2BB89A25':'#E05A2B25'};">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:${isPos?'var(--green)':'#E05A2B'};letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">resultado</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted2);">${fcFmtM(facturado)} facturado − ${fcFmtM(costoViaje)} costos</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:${isPos?'var(--green)':'#E05A2B'};">${isPos?'':'−'}${fcFmtM(Math.abs(ganancia))}</span>
+      </div>
+    </div>
+    ${consumoReal !== null ? `
+    <div style="margin-top:12px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;">
+        <span>Control de combustible</span>
+        ${diff !== null ? `<span class="cons-badge ${isAlto?'alto':'ok'}">${isAlto?'consumo elevado':'consumo normal'}</span>` : ''}
+      </div>
+      <div class="trip-metrics">
+        <div class="tm-card">
+          <div class="tm-tag">Consumo real</div>
+          <div class="tm-val ${diff===null?'':isAlto?'alto':'ok'}">${consumoReal.toFixed(1)} L</div>
+          <div class="tm-sub">cada 100 km</div>
+        </div>
+        <div class="tm-card">
+          <div class="tm-tag">Consumo esperado</div>
+          <div class="tm-val">${consumoTeo !== null ? consumoTeo.toFixed(1)+' L' : '—'}</div>
+          <div class="tm-sub">cada 100 km</div>
+        </div>
+        ${costoLitros !== null ? `
+        <div class="tm-card">
+          <div class="tm-tag">Costo combustible</div>
+          <div class="tm-val">${fcFmtM(costoLitros)}</div>
+          <div class="tm-sub">${litros} L × ${fcFmtM(precioL)}</div>
+        </div>` : ''}
+        ${diff !== null ? `
+        <div class="tm-card">
+          <div class="tm-tag">Diferencia</div>
+          <div class="tm-val ${isAlto?'alto':'ok'}">${diff>0?'+':''}${diff.toFixed(1)} L</div>
+          <div class="tm-sub">${diff>0?'más de lo esperado':diff<0?'menos de lo esperado':'exacto'}</div>
+          ${diff>0.05 && precioL>0 ? `<div style="margin-top:8px;padding:6px 8px;border-radius:6px;background:#E05A2B10;border:1px solid #E05A2B20;font-family:'JetBrains Mono',monospace;font-size:10px;color:#E05A2B;">costo extra: ${fcFmtM((diff/100)*vkm*precioL)}</div>` : ''}
+        </div>` : ''}
+      </div>
+    </div>` : ''}
+  `;
+}
+
+// ── TABS ──────────────────────────────────────────────
+function fcSwitchTab(tab){
+  document.getElementById('panel-calculadora').style.display = tab==='calculadora' ? '' : 'none';
+  document.getElementById('panel-historial').style.display   = tab==='historial'   ? '' : 'none';
+  document.getElementById('tab-calculadora').classList.toggle('active', tab==='calculadora');
+  document.getElementById('tab-historial').classList.toggle('active',   tab==='historial');
+  if(tab==='historial') fcRenderHistorial();
+}
+
+// ── GUARDAR VIAJE ──────────────────────────────────────
+let fcViajesGuardados = [];
+
+function fcGuardarViaje(){
+  const facturado  = parseFloat(document.getElementById('v-facturado').value)||0;
+  const vkm        = parseFloat(document.getElementById('v-km').value)||0;
+  const peajes     = parseFloat(document.getElementById('v-peajes').value)||0;
+  const litros     = parseFloat(document.getElementById('v-litros').value)||0;
+  const choferPago = parseFloat(document.getElementById('v-chofer-pago').value)||0;
+  const desc       = document.getElementById('v-desc').value.trim() || 'Viaje sin descripción';
+  const precioL    = parseFloat(document.getElementById('precio-litro').value)||0;
+  const rendTeo    = parseFloat(document.getElementById('rendimiento').value)||0;
+
+  if(facturado === 0 && vkm === 0){
+    const t = document.getElementById('save-toast');
+    t.textContent = '⚠ Ingresá al menos el monto y los km';
+    t.style.display='block';
+    t.style.background='#D4820A15';
+    t.style.borderColor='#D4820A35';
+    t.style.color='var(--amber)';
+    setTimeout(()=>{t.style.display='none';}, 2800);
+    return;
+  }
+
+  const costoViaje = _fcTotalKmG * vkm + peajes + choferPago;
+  const ganancia   = facturado - costoViaje;
+  const margen     = facturado > 0 ? ganancia/facturado*100 : 0;
+  const consumoReal = (litros>0 && vkm>0) ? litros/vkm*100 : null;
+  const consumoTeo  = rendTeo > 0 ? 100/rendTeo : null;
+
+  const viaje = {
+    id: Date.now(),
+    fecha: new Date().toLocaleString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}),
+    desc, facturado, vkm, peajes, litros, choferPago,
+    costoViaje, ganancia, margen, consumoReal, consumoTeo, precioL
+  };
+
+  fcViajesGuardados.unshift(viaje);
+
+  // Update counter badge
+  document.getElementById('tab-count').textContent = fcViajesGuardados.length;
+
+  // Show toast
+  const t = document.getElementById('save-toast');
+  t.innerHTML = '✓ Viaje guardado &nbsp;·&nbsp; <span style="cursor:pointer;text-decoration:underline" onclick="fcRegistrarCobro(fcViajesGuardados[0]);document.getElementById(\'save-toast\').style.display=\'none\'">Registrar como cobro en Flujo →</span>';
+  t.style.display='block';
+  t.style.background='#2BB89A15';
+  t.style.borderColor='#2BB89A30';
+  t.style.color='var(--green)';
+  t.style.cursor='pointer';
+  t.onclick = ()=>{ fcSwitchTab('historial'); t.style.display='none'; };
+  setTimeout(()=>{ t.style.display='none'; t.onclick=null; }, 4000);
+}
+
+// ── RENDER HISTORIAL ──────────────────────────────────
+function fcRenderHistorial(){
+  const empty = document.getElementById('hist-empty');
+  const list  = document.getElementById('hist-list');
+  const sumEl = document.getElementById('hist-summary');
+
+  if(fcViajesGuardados.length === 0){
+    empty.style.display='flex';
+    list.innerHTML='';
+    sumEl.style.display='none';
+    return;
+  }
+
+  empty.style.display='none';
+  sumEl.style.display='grid';
+
+  list.innerHTML = fcViajesGuardados.map((v,i)=>{
+    const isPos = v.ganancia >= 0;
+    const n = fcViajesGuardados.length - i;
+    return `
+    <div class="hist-card">
+      <div class="hist-card-head">
+        <div class="hist-card-left">
+          <span class="hist-num">#${n}</span>
+          <span class="hist-desc">${v.desc}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="hist-date">${v.fecha}</span>
+          <span class="hist-badge ${isPos?'pos':'neg'}">${isPos?'+':''}${fcFmtM(Math.round(v.ganancia))}</span>
+        </div>
+      </div>
+      <div class="hist-card-body">
+        <div class="hc-stat">
+          <div class="hc-label">Facturado</div>
+          <div class="hc-val">${fcFmtM(v.facturado)}</div>
+        </div>
+        <div class="hc-stat">
+          <div class="hc-label">Costo total</div>
+          <div class="hc-val">${fcFmtM(v.costoViaje)}</div>
+        </div>
+        <div class="hc-stat">
+          <div class="hc-label">Ganancia</div>
+          <div class="hc-val ${isPos?'green':'red'}">${fcFmtM(v.ganancia)}</div>
+        </div>
+        <div class="hc-stat">
+          <div class="hc-label">Margen</div>
+          <div class="hc-val ${isPos?'green':'red'}">${v.margen.toFixed(1)}%</div>
+        </div>
+        <div class="hc-stat">
+          <div class="hc-label">Km</div>
+          <div class="hc-val">${v.vkm.toLocaleString('es-AR')}</div>
+        </div>
+        ${v.consumoReal !== null ? `
+        <div class="hc-stat">
+          <div class="hc-label">Consumo real</div>
+          <div class="hc-val">${v.consumoReal.toFixed(1)} L/100km</div>
+        </div>` : ''}
+        ${v.choferPago > 0 ? `
+        <div class="hc-stat">
+          <div class="hc-label">Pago chofer</div>
+          <div class="hc-val">${fcFmtM(v.choferPago)}</div>
+        </div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Summary stats
+  const totalFact  = fcViajesGuardados.reduce((s,v)=>s+v.facturado, 0);
+  const totalGan   = fcViajesGuardados.reduce((s,v)=>s+v.ganancia, 0);
+  const totalKm    = fcViajesGuardados.reduce((s,v)=>s+v.vkm, 0);
+  const avgMargen  = fcViajesGuardados.reduce((s,v)=>s+v.margen, 0) / fcViajesGuardados.length;
+  const isGanPos   = totalGan >= 0;
+
+  document.getElementById('hs-count').textContent    = fcViajesGuardados.length;
+  document.getElementById('hs-facturado').textContent = fcFmtM(totalFact);
+  document.getElementById('hs-ganancia').textContent  = fcFmtM(totalGan);
+  document.getElementById('hs-ganancia').className    = 'hs-value'+(isGanPos?' green':'');
+  document.getElementById('hs-margen').textContent    = avgMargen.toFixed(1)+'%';
+  document.getElementById('hs-km').textContent        = totalKm.toLocaleString('es-AR')+' km';
+}
+
+function fcLimpiarHistorial(){
+  if(fcViajesGuardados.length === 0) return;
+  if(!confirm('¿Eliminar todos los viajes guardados?')) return;
+  fcViajesGuardados = [];
+  document.getElementById('tab-count').textContent = '0';
+  fcRenderHistorial();
+}
+
+function fcInitFlota() {
+  fcCalcular();
+  fcRenderHistorial();
+}
+
+
+function fcRegistrarCobro(viaje) {
+  const fecha = new Date().toISOString().split('T')[0];
+  data.cobros.push({id:Date.now(), nombre:'Flete: '+viaje.desc, monto:viaje.facturado, fecha:fecha, cobrado:false, notas:'FleetCost · '+viaje.vkm+' km · margen '+viaje.margen.toFixed(1)+'%'});
+  save();
+  alert('Cobro registrado en Flujo: '+viaje.desc+' — '+fcFmtM(viaje.facturado));
+}
+function fcInitFlota() {
+  fcCalcular();
+  fcRenderHistorial();
+}
+
+</script>
+</body>
+</html>
